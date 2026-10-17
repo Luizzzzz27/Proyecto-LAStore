@@ -1,0 +1,6 @@
+package com.lastore.pagos.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.lastore.pagos.model.Pago;
+
+public interface PagoRepository extends JpaRepository<Pago, Long> { }

@@ -1,0 +1,23 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: ms-reparaciones
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_lastore_reparaciones?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: Laga_1127
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
