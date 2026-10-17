@@ -1,0 +1,14 @@
+CREATE DATABASE IF NOT EXISTS db_lastore_auth;
+CREATE DATABASE IF NOT EXISTS db_lastore_clientes;
+CREATE DATABASE IF NOT EXISTS db_lastore_reparaciones;
+CREATE DATABASE IF NOT EXISTS db_lastore_pagos;
+
+USE db_lastore_auth;
+CREATE TABLE IF NOT EXISTS usuario (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    nombre_completo VARCHAR(120) NOT NULL,
+    rol VARCHAR(30) NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);

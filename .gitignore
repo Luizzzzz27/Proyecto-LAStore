@@ -1,0 +1,29 @@
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+.mvn/timing.properties
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.metadata/
+.factorypath
+
+# IntelliJ / VS Code
+.idea/
+*.iml
+.vscode/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# Sistema / herramientas locales
+.DS_Store
+Thumbs.db
+.tools/

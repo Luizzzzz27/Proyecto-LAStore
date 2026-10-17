@@ -1,0 +1,37 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: ms-api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: ms-auth
+          uri: lb://ms-auth
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: ms-clientes
+          uri: lb://ms-clientes
+          predicates:
+            - Path=/api/v1/clientes/**
+        - id: ms-reparaciones
+          uri: lb://ms-reparaciones
+          predicates:
+            - Path=/api/v1/tickets/**
+        - id: ms-pagos
+          uri: lb://ms-pagos
+          predicates:
+            - Path=/api/v1/pagos/**
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:4200
+              - http://127.0.0.1:4200
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+            allowedHeaders: '*'
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
