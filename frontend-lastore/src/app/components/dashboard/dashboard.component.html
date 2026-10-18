@@ -1,0 +1,26 @@
+<div class="app-shell">
+  <aside class="sidebar" [class.open]="menuAbierto">
+    <a class="brand" routerLink="/dashboard">
+      <span class="brand-icon"><i class="bi bi-cpu-fill"></i></span>
+      <span><strong>LA Store</strong><small>Service-Commerce</small></span>
+    </a>
+    <nav class="nav flex-column gap-2">
+      <a class="nav-link" routerLink="/dashboard/clientes" routerLinkActive="active"><i class="bi bi-people"></i> Clientes</a>
+      <a class="nav-link" routerLink="/dashboard/tickets" routerLinkActive="active"><i class="bi bi-tools"></i> Cotizaciones</a>
+      <a class="nav-link" routerLink="/dashboard/pagos" routerLinkActive="active"><i class="bi bi-credit-card"></i> Pagos</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-avatar">{{ usuario?.nombreCompleto?.charAt(0) || 'L' }}</div>
+      <div class="user-copy"><strong>{{ usuario?.nombreCompleto || 'Usuario LA Store' }}</strong><small>{{ usuario?.rol || 'COLABORADOR' }}</small></div>
+      <button class="btn btn-link text-white" title="Cerrar sesión" (click)="cerrarSesion()"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </aside>
+  <section class="workspace">
+    <header class="topbar">
+      <button class="btn btn-light d-lg-none" (click)="menuAbierto = !menuAbierto"><i class="bi bi-list"></i></button>
+      <div><span class="status-dot"></span> Servicios conectados mediante API Gateway</div>
+      <span class="badge text-bg-light">Puerto 8080</span>
+    </header>
+    <main class="content"><router-outlet /></main>
+  </section>
+</div>

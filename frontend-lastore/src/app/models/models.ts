@@ -1,0 +1,33 @@
+export interface UsuarioSesion {
+  id: number;
+  username: string;
+  nombreCompleto: string;
+  rol: string;
+  mensaje: string;
+  token: string;
+}
+
+export interface Cliente {
+  id?: number;
+  dniRuc: string;
+  nombres: string;
+  telefono: string;
+  correo: string;
+}
+
+export interface Ticket {
+  id?: number;
+  clienteId: number;
+  tipoEquipo: string;
+  marcaModelo: string;
+  fallaReportada: string;
+  estadoCotizacion: string;
+  montoTotal: number;
+}
+
+export interface Pago {
+  id?: number;
+  ticketId: number;
+  montoPago: number;
+  estadoPago: string;
+}

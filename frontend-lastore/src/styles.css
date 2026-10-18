@@ -1,0 +1,27 @@
+:root {
+  --la-navy: #111827;
+  --la-blue: #2563eb;
+  --la-cyan: #06b6d4;
+  --la-surface: #f4f7fb;
+  --la-muted: #64748b;
+}
+
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--la-surface);
+  color: #172033;
+}
+
+.page-title { font-weight: 750; letter-spacing: -0.03em; }
+.surface-card { border: 0; border-radius: 1rem; box-shadow: 0 12px 32px rgba(15, 23, 42, .08); }
+.btn { border-radius: .65rem; }
+.form-control, .form-select { border-radius: .65rem; min-height: 44px; }
+.table > :not(caption) > * > * { padding: .9rem .75rem; vertical-align: middle; }
+.modal-backdrop-custom {
+  position: fixed; inset: 0; z-index: 1050; display: grid; place-items: center;
+  padding: 1rem; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px);
+}
+.modal-card { width: min(680px, 100%); max-height: 92vh; overflow-y: auto; }
+.empty-state { padding: 3rem 1rem; color: var(--la-muted); text-align: center; }

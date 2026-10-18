@@ -1,0 +1,37 @@
+<main class="login-shell">
+  <section class="login-card shadow-lg">
+    <div class="brand-panel">
+      <div class="brand-badge"><i class="bi bi-cpu-fill"></i></div>
+      <p class="eyebrow">SERVICE-COMMERCE</p>
+      <h1>LA Store</h1>
+      <p>Gestión integral de reparaciones, cotizaciones y cobros técnicos.</p>
+      <div class="feature"><i class="bi bi-shield-check"></i><span>Acceso empresarial seguro</span></div>
+      <div class="feature"><i class="bi bi-lightning-charge"></i><span>Operación en tiempo real</span></div>
+    </div>
+    <div class="form-panel">
+      <div class="mb-4">
+        <p class="text-primary fw-semibold mb-1">Bienvenido</p>
+        <h2 class="fw-bold">Iniciar sesión</h2>
+        <p class="text-secondary">Ingrese sus credenciales de LA Store.</p>
+      </div>
+      @if (mensajeError) { <div class="alert alert-danger py-2">{{ mensajeError }}</div> }
+      <form (ngSubmit)="ingresar()" #loginForm="ngForm">
+        <label class="form-label fw-semibold" for="username">Usuario</label>
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input id="username" name="username" class="form-control" [(ngModel)]="username" autocomplete="username" required>
+        </div>
+        <label class="form-label fw-semibold" for="password">Contraseña</label>
+        <div class="input-group mb-4">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input id="password" name="password" type="password" class="form-control" [(ngModel)]="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn btn-primary w-100 py-2 fw-semibold" [disabled]="cargando || loginForm.invalid">
+          @if (cargando) { <span class="spinner-border spinner-border-sm me-2"></span> }
+          Ingresar al sistema
+        </button>
+      </form>
+      <p class="small text-secondary text-center mt-4 mb-0">Soporte técnico · Repuestos · Confianza</p>
+    </div>
+  </section>
+</main>
