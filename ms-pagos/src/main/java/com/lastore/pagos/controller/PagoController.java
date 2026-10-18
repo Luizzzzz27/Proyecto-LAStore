@@ -62,4 +62,11 @@ public class PagoController {
         pago.setEstadoPago("PAGADO");
         return ResponseEntity.ok(pagoRepository.save(pago));
     }
+
+    @PutMapping("/{id}/anular")
+    public ResponseEntity<Pago> anular(@PathVariable Long id) {
+        Pago pago = obtener(id);
+        pago.setEstadoPago("ANULADO");
+        return ResponseEntity.ok(pagoRepository.save(pago));
+    }
 }

@@ -21,6 +21,8 @@ import com.lastore.reparaciones.repository.TicketRepository;
 @RestController
 @RequestMapping("/api/v1/tickets")
 public class TicketController {
+    private static final String ESTADO_APROBADA = "APROBADA";
+    private static final String ESTADO_ANULADA = "ANULADA";
     private final TicketRepository ticketRepository;
     private final RabbitTemplate rabbitTemplate;
 
@@ -51,13 +53,19 @@ public class TicketController {
     @PutMapping("/{id}")
     public Ticket actualizar(@PathVariable Long id, @RequestBody Ticket datos) {
         Ticket ticket = obtener(id);
+        boolean debePublicarAprobacion = !ESTADO_APROBADA.equals(ticket.getEstadoCotizacion())
+            && ESTADO_APROBADA.equals(datos.getEstadoCotizacion());
+
         ticket.setClienteId(datos.getClienteId());
         ticket.setTipoEquipo(datos.getTipoEquipo());
         ticket.setMarcaModelo(datos.getMarcaModelo());
         ticket.setFallaReportada(datos.getFallaReportada());
         ticket.setEstadoCotizacion(datos.getEstadoCotizacion());
         ticket.setMontoTotal(datos.getMontoTotal());
-        return ticketRepository.save(ticket);
+
+        Ticket guardado = ticketRepository.save(ticket);
+        if (debePublicarAprobacion) publicarCotizacionAprobada(guardado);
+        return guardado;
     }
 
     @DeleteMapping("/{id}")
@@ -70,12 +78,23 @@ public class TicketController {
     @PutMapping("/{id}/aprobar-cotizacion")
     public ResponseEntity<Ticket> aprobarCotizacion(@PathVariable Long id) {
         Ticket ticket = obtener(id);
-        ticket.setEstadoCotizacion("APROBADA");
+        ticket.setEstadoCotizacion(ESTADO_APROBADA);
         Ticket guardado = ticketRepository.save(ticket);
-        if (guardado.getMontoTotal() != null && guardado.getMontoTotal().compareTo(BigDecimal.ZERO) > 0) {
-            String mensaje = guardado.getId() + ":" + guardado.getMontoTotal().toPlainString();
+        publicarCotizacionAprobada(guardado);
+        return ResponseEntity.ok(guardado);
+    }
+
+    @PutMapping("/{id}/anular")
+    public ResponseEntity<Ticket> anular(@PathVariable Long id) {
+        Ticket ticket = obtener(id);
+        ticket.setEstadoCotizacion(ESTADO_ANULADA);
+        return ResponseEntity.ok(ticketRepository.save(ticket));
+    }
+
+    private void publicarCotizacionAprobada(Ticket ticket) {
+        if (ticket.getMontoTotal() != null && ticket.getMontoTotal().compareTo(BigDecimal.ZERO) > 0) {
+            String mensaje = ticket.getId() + ":" + ticket.getMontoTotal().toPlainString();
             rabbitTemplate.convertAndSend(RabbitMQConfig.COLA_COTIZACION_APROBADA, mensaje);
         }
-        return ResponseEntity.ok(guardado);
     }
 }

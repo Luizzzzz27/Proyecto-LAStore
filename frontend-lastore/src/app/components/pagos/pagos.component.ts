@@ -1,8 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { finalize } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 import { Pago } from '../../models/models';
 import { PagoService } from '../../services/pago.service';
+import { TicketService } from '../../services/ticket.service';
 
 @Component({
   selector: 'app-pagos',
@@ -14,11 +15,13 @@ export class PagosComponent implements OnInit {
   pagos: Pago[] = [];
   cargando = false;
   procesandoId?: number;
+  anulandoId?: number;
   mensaje = '';
   error = '';
 
   constructor(
     private readonly pagoService: PagoService,
+    private readonly ticketService: TicketService,
     private readonly changeDetectorRef: ChangeDetectorRef
   ) {}
 
@@ -54,6 +57,28 @@ export class PagosComponent implements OnInit {
         this.cargarPagos();
       },
       error: () => this.error = 'No se pudo procesar el cobro.'
+    });
+  }
+
+  anular(pago: Pago): void {
+    if (!pago.id || !confirm(`¿Anular el pago #${pago.id} y el ticket #${pago.ticketId}?`)) return;
+    this.anulandoId = pago.id;
+    this.error = '';
+    this.pagoService.anularPago(pago.id).pipe(
+      switchMap(() => this.ticketService.anularTicket(pago.ticketId)),
+      finalize(() => {
+        this.anulandoId = undefined;
+        this.changeDetectorRef.markForCheck();
+      })
+    ).subscribe({
+      next: () => {
+        this.mensaje = 'Pago y servicio anulados correctamente.';
+        this.cargarPagos();
+      },
+      error: () => {
+        this.error = 'No se pudo completar la anulación del pago y el servicio.';
+        this.cargarPagos();
+      }
     });
   }
 }

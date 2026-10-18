@@ -10,4 +10,5 @@ export class PagoService {
 
   listar(): Observable<Pago[]> { return this.http.get<Pago[]>(this.apiUrl); }
   procesarPago(id: number): Observable<Pago> { return this.http.put<Pago>(`${this.apiUrl}/${id}/procesar`, {}); }
+  anularPago(id: number): Observable<Pago> { return this.http.put<Pago>(`${this.apiUrl}/${id}/anular`, {}); }
 }

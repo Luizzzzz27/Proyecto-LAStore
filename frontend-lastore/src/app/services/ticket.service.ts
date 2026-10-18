@@ -14,4 +14,5 @@ export class TicketService {
   actualizar(id: number, ticket: Ticket): Observable<Ticket> { return this.http.put<Ticket>(`${this.apiUrl}/${id}`, ticket); }
   eliminar(id: number): Observable<void> { return this.http.delete<void>(`${this.apiUrl}/${id}`); }
   aprobarCotizacion(id: number): Observable<Ticket> { return this.http.put<Ticket>(`${this.apiUrl}/${id}/aprobar-cotizacion`, {}); }
+  anularTicket(id: number): Observable<Ticket> { return this.http.put<Ticket>(`${this.apiUrl}/${id}/anular`, {}); }
 }
