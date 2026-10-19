@@ -51,6 +51,6 @@ class PagoStateServiceTest {
         when(repository.save(pago)).thenReturn(pago);
         service.anularPago(pago);
         assertThat(pago.getEstadoPago()).isEqualTo("ANULADO");
-        verify(rabbit).convertAndSend(RabbitMQConfig.PAGO_ANULADO, "12");
+        verify(rabbit).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_PAGO_ANULADO, "12");
     }
 }

@@ -26,7 +26,7 @@ class TicketStateServiceTest {
         });
         Ticket ticket = new Ticket(null, 1L, "Laptop", "X", "Falla", "APROBADA", new BigDecimal("150.50"));
         service.crear(ticket);
-        verify(rabbit).convertAndSend(RabbitMQConfig.APROBADA, "12:150.50");
+        verify(rabbit).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_APROBADA, "12:150.50");
     }
 
     @Test void editarARechazadaCancelaCobro() {
@@ -35,7 +35,7 @@ class TicketStateServiceTest {
         when(repository.save(any(Ticket.class))).thenAnswer(call -> call.getArgument(0));
         Ticket datos = new Ticket(12L, 1L, "Laptop", "X", "Falla", "RECHAZADA", new BigDecimal("150.50"));
         service.actualizar(12L, datos);
-        verify(rabbit).convertAndSend(RabbitMQConfig.CANCELADA, "12");
+        verify(rabbit).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_CANCELADA, "12");
     }
 
     @Test void anularConservaRegistroYPublicaCancelacion() {
@@ -44,6 +44,6 @@ class TicketStateServiceTest {
         when(repository.save(any(Ticket.class))).thenAnswer(call -> call.getArgument(0));
         assertThat(service.anular(12L).getEstadoCotizacion()).isEqualTo("ANULADA");
         verify(repository).save(ticket);
-        verify(rabbit).convertAndSend(RabbitMQConfig.CANCELADA, "12");
+        verify(rabbit).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_CANCELADA, "12");
     }
 }

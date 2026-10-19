@@ -71,7 +71,7 @@ public class PagoStateService {
     public Pago anularPago(Pago pago) {
         pago.setEstadoPago(ANULADO);
         Pago guardado = pagoRepository.save(pago);
-        rabbitTemplate.convertAndSend(RabbitMQConfig.PAGO_ANULADO, String.valueOf(guardado.getTicketId()));
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_PAGO_ANULADO, String.valueOf(guardado.getTicketId()));
         return guardado;
     }
 

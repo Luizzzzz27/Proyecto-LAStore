@@ -81,13 +81,13 @@ public class TicketStateService {
         EstadoCotizacion estado = EstadoCotizacion.desde(ticket.getEstadoCotizacion());
         if (estado == EstadoCotizacion.APROBADA) {
             if (ticket.getMontoTotal() != null && ticket.getMontoTotal().compareTo(BigDecimal.ZERO) > 0) {
-                rabbitTemplate.convertAndSend(RabbitMQConfig.APROBADA,
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_APROBADA,
                     ticket.getId() + ":" + ticket.getMontoTotal().toPlainString());
             } else {
-                rabbitTemplate.convertAndSend(RabbitMQConfig.CANCELADA, String.valueOf(ticket.getId()));
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_CANCELADA, String.valueOf(ticket.getId()));
             }
         } else {
-            rabbitTemplate.convertAndSend(RabbitMQConfig.CANCELADA, String.valueOf(ticket.getId()));
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_CANCELADA, String.valueOf(ticket.getId()));
         }
     }
 }
