@@ -53,8 +53,7 @@ public class TicketController {
     @PutMapping("/{id}")
     public Ticket actualizar(@PathVariable Long id, @RequestBody Ticket datos) {
         Ticket ticket = obtener(id);
-        boolean debePublicarAprobacion = !ESTADO_APROBADA.equals(ticket.getEstadoCotizacion())
-            && ESTADO_APROBADA.equals(datos.getEstadoCotizacion());
+        String oldEstado = ticket.getEstadoCotizacion();
 
         ticket.setClienteId(datos.getClienteId());
         ticket.setTipoEquipo(datos.getTipoEquipo());
@@ -64,15 +63,20 @@ public class TicketController {
         ticket.setMontoTotal(datos.getMontoTotal());
 
         Ticket guardado = ticketRepository.save(ticket);
-        if (debePublicarAprobacion) publicarCotizacionAprobada(guardado);
+        if (!ESTADO_APROBADA.equals(oldEstado) && ESTADO_APROBADA.equals(guardado.getEstadoCotizacion())) {
+            rabbitTemplate.convertAndSend(
+                "q.lastore.cotizacion.aprobada",
+                guardado.getId() + ":" + guardado.getMontoTotal()
+            );
+        }
         return guardado;
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Ticket> eliminarLogicamente(@PathVariable Long id) {
         Ticket ticket = obtener(id);
-        ticketRepository.delete(ticket);
-        return ResponseEntity.noContent().build();
+        ticket.setEstadoCotizacion(ESTADO_ANULADA);
+        return ResponseEntity.ok(ticketRepository.save(ticket));
     }
 
     @PutMapping("/{id}/aprobar-cotizacion")

@@ -20,9 +20,7 @@ import com.lastore.pagos.repository.PagoRepository;
 public class PagoController {
     private final PagoRepository pagoRepository;
 
-    public PagoController(PagoRepository pagoRepository) {
-        this.pagoRepository = pagoRepository;
-    }
+    public PagoController(PagoRepository pagoRepository) { this.pagoRepository = pagoRepository; }
 
     @GetMapping
     public List<Pago> listar() { return pagoRepository.findAll(); }
@@ -67,6 +65,7 @@ public class PagoController {
     public ResponseEntity<Pago> anular(@PathVariable Long id) {
         Pago pago = obtener(id);
         pago.setEstadoPago("ANULADO");
-        return ResponseEntity.ok(pagoRepository.save(pago));
+        Pago guardado = pagoRepository.save(pago);
+        return ResponseEntity.ok(guardado);
     }
 }
