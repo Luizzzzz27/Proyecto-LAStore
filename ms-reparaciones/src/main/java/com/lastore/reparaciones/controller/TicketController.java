@@ -1,8 +1,6 @@
 package com.lastore.reparaciones.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,92 +11,36 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-import com.lastore.reparaciones.config.RabbitMQConfig;
 import com.lastore.reparaciones.model.Ticket;
 import com.lastore.reparaciones.repository.TicketRepository;
+import com.lastore.reparaciones.service.TicketStateService;
 
 @RestController
 @RequestMapping("/api/v1/tickets")
 public class TicketController {
-    private static final String ESTADO_APROBADA = "APROBADA";
-    private static final String ESTADO_ANULADA = "ANULADA";
     private final TicketRepository ticketRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final TicketStateService stateService;
 
-    public TicketController(TicketRepository ticketRepository, RabbitTemplate rabbitTemplate) {
+    public TicketController(TicketRepository ticketRepository, TicketStateService stateService) {
         this.ticketRepository = ticketRepository;
-        this.rabbitTemplate = rabbitTemplate;
+        this.stateService = stateService;
     }
 
-    @GetMapping
-    public List<Ticket> listar() { return ticketRepository.findAll(); }
-
-    @GetMapping("/{id}")
-    public Ticket obtener(@PathVariable Long id) {
-        return ticketRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket no encontrado"));
+    @GetMapping public List<Ticket> listar() { return ticketRepository.findAll(); }
+    @GetMapping("/{id}") public Ticket obtener(@PathVariable Long id) { return stateService.obtener(id); }
+    @PostMapping public ResponseEntity<Ticket> crear(@RequestBody Ticket ticket) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(stateService.crear(ticket));
     }
-
-    @PostMapping
-    public ResponseEntity<Ticket> crear(@RequestBody Ticket ticket) {
-        ticket.setId(null);
-        if (ticket.getEstadoCotizacion() == null || ticket.getEstadoCotizacion().isBlank()) {
-            ticket.setEstadoCotizacion("PENDIENTE_ENVIO");
-        }
-        if (ticket.getMontoTotal() == null) ticket.setMontoTotal(BigDecimal.ZERO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ticketRepository.save(ticket));
+    @PutMapping("/{id}") public Ticket actualizar(@PathVariable Long id, @RequestBody Ticket datos) {
+        return stateService.actualizar(id, datos);
     }
-
-    @PutMapping("/{id}")
-    public Ticket actualizar(@PathVariable Long id, @RequestBody Ticket datos) {
-        Ticket ticket = obtener(id);
-        String oldEstado = ticket.getEstadoCotizacion();
-
-        ticket.setClienteId(datos.getClienteId());
-        ticket.setTipoEquipo(datos.getTipoEquipo());
-        ticket.setMarcaModelo(datos.getMarcaModelo());
-        ticket.setFallaReportada(datos.getFallaReportada());
-        ticket.setEstadoCotizacion(datos.getEstadoCotizacion());
-        ticket.setMontoTotal(datos.getMontoTotal());
-
-        Ticket guardado = ticketRepository.save(ticket);
-        if (!ESTADO_APROBADA.equals(oldEstado) && ESTADO_APROBADA.equals(guardado.getEstadoCotizacion())) {
-            rabbitTemplate.convertAndSend(
-                "q.lastore.cotizacion.aprobada",
-                guardado.getId() + ":" + guardado.getMontoTotal()
-            );
-        }
-        return guardado;
+    @PutMapping("/{id}/aprobar-cotizacion") public ResponseEntity<Ticket> aprobar(@PathVariable Long id) {
+        return ResponseEntity.ok(stateService.aprobar(id));
     }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Ticket> eliminarLogicamente(@PathVariable Long id) {
-        Ticket ticket = obtener(id);
-        ticket.setEstadoCotizacion(ESTADO_ANULADA);
-        return ResponseEntity.ok(ticketRepository.save(ticket));
+    @PutMapping("/{id}/anular") public ResponseEntity<Ticket> anular(@PathVariable Long id) {
+        return ResponseEntity.ok(stateService.anular(id));
     }
-
-    @PutMapping("/{id}/aprobar-cotizacion")
-    public ResponseEntity<Ticket> aprobarCotizacion(@PathVariable Long id) {
-        Ticket ticket = obtener(id);
-        ticket.setEstadoCotizacion(ESTADO_APROBADA);
-        Ticket guardado = ticketRepository.save(ticket);
-        publicarCotizacionAprobada(guardado);
-        return ResponseEntity.ok(guardado);
-    }
-
-    @PutMapping("/{id}/anular")
-    public ResponseEntity<Ticket> anular(@PathVariable Long id) {
-        Ticket ticket = obtener(id);
-        ticket.setEstadoCotizacion(ESTADO_ANULADA);
-        return ResponseEntity.ok(ticketRepository.save(ticket));
-    }
-
-    private void publicarCotizacionAprobada(Ticket ticket) {
-        if (ticket.getMontoTotal() != null && ticket.getMontoTotal().compareTo(BigDecimal.ZERO) > 0) {
-            String mensaje = ticket.getId() + ":" + ticket.getMontoTotal().toPlainString();
-            rabbitTemplate.convertAndSend(RabbitMQConfig.COLA_COTIZACION_APROBADA, mensaje);
-        }
+    @DeleteMapping("/{id}") public ResponseEntity<Ticket> eliminarLogicamente(@PathVariable Long id) {
+        return ResponseEntity.ok(stateService.anular(id));
     }
 }
