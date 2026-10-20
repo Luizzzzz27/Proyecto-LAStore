@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import com.lastore.pagos.model.Pago;
+import com.lastore.pagos.dto.CobroRequest;
 import com.lastore.pagos.repository.PagoRepository;
 import com.lastore.pagos.service.PagoStateService;
 
@@ -33,28 +34,20 @@ public class PagoController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pago no encontrado"));
     }
     @PostMapping public ResponseEntity<Pago> crear(@RequestBody Pago pago) {
-        pago.setId(null);
-        if (pago.getEstadoPago() == null || pago.getEstadoPago().isBlank()) pago.setEstadoPago("PENDIENTE");
-        return ResponseEntity.status(HttpStatus.CREATED).body(pagoRepository.save(pago));
+        return ResponseEntity.status(HttpStatus.CREATED).body(stateService.crear(pago));
     }
     @PutMapping("/{id}") public Pago actualizar(@PathVariable Long id, @RequestBody Pago datos) {
-        Pago pago = obtener(id);
-        pago.setTicketId(datos.getTicketId());
-        pago.setMontoPago(datos.getMontoPago());
-        pago.setEstadoPago(datos.getEstadoPago());
-        pago.setMetodoPago(datos.getMetodoPago());
-        return pagoRepository.save(pago);
+        return stateService.actualizar(id, datos);
     }
     @DeleteMapping("/{id}") public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        pagoRepository.delete(obtener(id));
+        stateService.anular(id);
         return ResponseEntity.noContent().build();
     }
-    @PutMapping("/{id}/procesar") public ResponseEntity<Pago> procesar(@PathVariable Long id) {
-        Pago pago = obtener(id);
-        pago.setEstadoPago("PAGADO");
-        return ResponseEntity.ok(pagoRepository.save(pago));
+    @PutMapping("/{id}/procesar") public ResponseEntity<Pago> procesar(@PathVariable Long id,
+            @RequestBody(required = false) CobroRequest solicitud) {
+        return ResponseEntity.ok(stateService.procesar(id, solicitud));
     }
     @PutMapping("/{id}/anular") public ResponseEntity<Pago> anular(@PathVariable Long id) {
-        return ResponseEntity.ok(stateService.anularPago(obtener(id)));
+        return ResponseEntity.ok(stateService.anular(id));
     }
 }

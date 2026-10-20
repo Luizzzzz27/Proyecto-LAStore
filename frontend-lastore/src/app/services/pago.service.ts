@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Pago } from '../models/models';
+import { Pago, CobroRequest } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class PagoService {
@@ -9,6 +9,6 @@ export class PagoService {
   constructor(private readonly http: HttpClient) {}
 
   listar(): Observable<Pago[]> { return this.http.get<Pago[]>(this.apiUrl); }
-  procesarPago(id: number): Observable<Pago> { return this.http.put<Pago>(`${this.apiUrl}/${id}/procesar`, {}); }
+  procesarPago(id: number, cobro?: CobroRequest): Observable<Pago> { return this.http.put<Pago>(`${this.apiUrl}/${id}/procesar`, cobro ?? null); }
   anularPago(id: number): Observable<Pago> { return this.http.put<Pago>(`${this.apiUrl}/${id}/anular`, {}); }
 }

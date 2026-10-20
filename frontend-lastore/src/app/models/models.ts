@@ -30,7 +30,19 @@ export interface Pago {
   id?: number;
   ticketId: number;
   montoPago: number;
+  monto?: number;
+  montoPagado?: number | null;
+  saldoPendiente?: number | null;
+  referenciaPago?: string | null;
   estadoPago: string;
   fechaRegistro?: string | null;
   metodoPago?: string | null;
+}
+
+export type MetodoPago = 'EFECTIVO' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'TARJETA';
+
+export interface CobroRequest {
+  montoAbono: number;
+  metodoPago: MetodoPago;
+  referenciaPago?: string;
 }

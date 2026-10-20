@@ -32,9 +32,16 @@ public class Pago {
     @Column(name = "metodo_pago", length = 50)
     private String metodoPago;
 
+    @Column(name = "monto_pagado", precision = 10, scale = 2)
+    private BigDecimal montoPagado;
+
+    @Column(name = "referencia_pago", columnDefinition = "TEXT")
+    private String referenciaPago;
+
     @PrePersist
     public void asignarFechaRegistro() {
         if (fechaRegistro == null) fechaRegistro = LocalDateTime.now();
+        if (montoPagado == null) montoPagado = getMontoPagado();
     }
 
     public Pago() { }
@@ -58,4 +65,17 @@ public class Pago {
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
     public String getMetodoPago() { return metodoPago; }
     public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
+    // Alias público: conserva monto_pago y los consumidores anteriores de montoPago.
+    public BigDecimal getMonto() { return montoPago == null ? BigDecimal.ZERO : montoPago; }
+    public void setMonto(BigDecimal monto) { this.montoPago = monto; }
+    public BigDecimal getMontoPagado() {
+        return montoPagado != null ? montoPagado : ("PAGADO".equals(estadoPago) ? getMonto() : BigDecimal.ZERO);
+    }
+    public void setMontoPagado(BigDecimal montoPagado) { this.montoPagado = montoPagado; }
+    public BigDecimal getSaldoPendiente() {
+        return "PAGADO".equals(estadoPago) || "ANULADO".equals(estadoPago)
+            ? BigDecimal.ZERO : getMonto().subtract(getMontoPagado()).max(BigDecimal.ZERO);
+    }
+    public String getReferenciaPago() { return referenciaPago; }
+    public void setReferenciaPago(String referenciaPago) { this.referenciaPago = referenciaPago; }
 }

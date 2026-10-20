@@ -15,6 +15,10 @@ import { ClienteService } from '../../services/cliente.service';
 export class TicketsComponent implements OnInit {
   tickets: Ticket[] = [];
   clientes = new Map<number, Cliente>();
+  buscarClienteModal = '';
+  errorClienteModal = '';
+  cargandoClientes = false;
+  clientesCargados = false;
   terminoBusqueda = '';
   estadoFiltro = '';
   fechaDesde = '';
@@ -33,10 +37,40 @@ export class TicketsComponent implements OnInit {
   ) {}
   ngOnInit(): void {
     this.cargarTickets();
-    this.clienteService.listar().subscribe({
-      next: clientes => { this.clientes = new Map(clientes.filter(c => c.id != null).map(c => [c.id!, c])); this.changeDetectorRef.markForCheck(); },
+    this.cargarClientes();
+  }
+
+  cargarClientes(): void {
+    this.cargandoClientes = true;
+    this.clienteService.listar().pipe(finalize(() => {
+      this.cargandoClientes = false;
+      this.changeDetectorRef.markForCheck();
+    })).subscribe({
+      next: clientes => { this.clientesCargados = true; this.clientes = new Map(clientes.filter(c => c.id != null).map(c => [c.id!, c])); this.changeDetectorRef.markForCheck(); },
       error: () => { this.error = 'No se pudieron cargar los clientes para la búsqueda.'; this.changeDetectorRef.markForCheck(); }
     });
+  }
+
+  get clienteValido(): boolean { return this.clientes.has(this.formulario.clienteId); }
+
+  get clientesModal(): Cliente[] {
+    const normalizar = (valor: string) => valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const texto = normalizar(this.buscarClienteModal.trim());
+    return Array.from(this.clientes.values())
+      .filter(cliente => !texto || normalizar(cliente.nombres + ' ' + cliente.dniRuc).includes(texto))
+      .slice(0, 50);
+  }
+
+  buscarCliente(valor: string): void {
+    this.buscarClienteModal = valor;
+    this.formulario.clienteId = 0;
+    this.errorClienteModal = 'Seleccione un cliente de las coincidencias del directorio.';
+  }
+
+  seleccionarCliente(cliente: Cliente): void {
+    this.formulario.clienteId = cliente.id!;
+    this.buscarClienteModal = cliente.nombres;
+    this.errorClienteModal = '';
   }
 
   get ticketsFiltrados(): Ticket[] {
@@ -85,13 +119,24 @@ export class TicketsComponent implements OnInit {
   }
   abrirCrear(): void {
     this.formulario = this.nuevoTicket();
+    this.buscarClienteModal = '';
+    this.errorClienteModal = '';
+    this.cargarClientes();
     this.modalAbierto = true;
   }
   abrirEditar(ticket: Ticket): void {
     this.formulario = { ...ticket };
+    this.buscarClienteModal = this.clientes.get(ticket.clienteId)?.nombres ?? '';
+    this.errorClienteModal = this.clienteValido ? '' : 'Asigne un cliente registrado antes de guardar este ticket.';
+    this.cargarClientes();
     this.modalAbierto = true;
   }
   guardar(): void {
+    if (!this.clienteValido || this.cargandoClientes) {
+      this.errorClienteModal = 'Seleccione un cliente válido del directorio de LA Store.';
+      return;
+    }
+    this.errorClienteModal = '';
     this.guardando = true;
     const request = this.formulario.id
       ? this.ticketService.actualizar(this.formulario.id, this.formulario)
@@ -109,7 +154,7 @@ export class TicketsComponent implements OnInit {
           this.mensaje = 'Ticket guardado correctamente.';
           this.cargarTickets();
         },
-        error: () => (this.error = 'No se pudo guardar el ticket.'),
+        error: respuesta => { this.errorClienteModal = respuesta.error?.message || 'No se pudo guardar el ticket.'; },
       });
   }
   aprobar(ticket: Ticket): void {

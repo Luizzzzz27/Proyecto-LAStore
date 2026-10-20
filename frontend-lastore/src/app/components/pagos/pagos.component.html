@@ -1,15 +1,16 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><p class="text-primary fw-bold small mb-1">TESORERÍA</p><h1 class="page-title mb-1">Pagos</h1><p class="text-secondary mb-0">Cobros generados automáticamente desde RabbitMQ.</p></div><button class="btn btn-outline-primary" (click)="cargarPagos()"><i class="bi bi-arrow-clockwise me-2"></i>Actualizar</button></div>
 @if (mensaje) { <div class="alert alert-success alert-dismissible">{{ mensaje }}<button class="btn-close" (click)="mensaje = ''"></button></div> }
 @if (error) { <div class="alert alert-danger alert-dismissible">{{ error }}<button class="btn-close" (click)="error = ''"></button></div> }
-<div class="row g-3 mb-4">
-  <div class="col-md-3"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Pagos registrados</small><div class="fs-2 fw-bold">{{ pagos.length }}</div></div></div></div>
-  <div class="col-md-3"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Pendientes</small><div class="fs-2 fw-bold text-warning">{{ contar('PENDIENTE') }}</div></div></div></div>
-  <div class="col-md-3"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Procesados</small><div class="fs-2 fw-bold text-success">{{ contar('PAGADO') }}</div></div></div></div>
-  <div class="col-md-3"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Anulados</small><div class="fs-2 fw-bold text-danger">{{ contar('ANULADO') }}</div></div></div></div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-5 g-3 mb-4">
+  <div class="col"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Adelantos / Parciales</small><div class="fs-2 fw-bold text-info">{{ contar('PARCIAL') }}</div></div></div></div>
+  <div class="col"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Pagos registrados</small><div class="fs-2 fw-bold">{{ pagos.length }}</div></div></div></div>
+  <div class="col"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Pendientes</small><div class="fs-2 fw-bold text-warning">{{ contar('PENDIENTE') }}</div></div></div></div>
+  <div class="col"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Procesados</small><div class="fs-2 fw-bold text-success">{{ contar('PAGADO') }}</div></div></div></div>
+  <div class="col"><div class="card surface-card"><div class="card-body"><small class="text-secondary">Anulados</small><div class="fs-2 fw-bold text-danger">{{ contar('ANULADO') }}</div></div></div></div>
 </div>
 <div class="card surface-card mb-3"><div class="card-body"><div class="row g-3 align-items-end">
   <div class="col-lg-4"><label class="form-label" for="buscarPago">Buscar pago, ticket, cliente, DNI/RUC o método</label><input id="buscarPago" class="form-control" type="search" placeholder="Ej. #1, DNI o nombre" [(ngModel)]="terminoBusqueda"></div>
-  <div class="col-lg-2"><label class="form-label" for="estadoPago">Estado</label><select id="estadoPago" class="form-select" [(ngModel)]="estadoFiltro"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="PAGADO">Pagado</option><option value="ANULADO">Anulado</option></select></div>
+  <div class="col-lg-2"><label class="form-label" for="estadoPago">Estado</label><select id="estadoPago" class="form-select" [(ngModel)]="estadoFiltro"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="PARCIAL">Parcial / Adelanto</option><option value="PAGADO">Pagado</option><option value="ANULADO">Anulado</option></select></div>
   <div class="col-lg-2"><label class="form-label" for="desdePago">Desde</label><input id="desdePago" class="form-control" type="date" [(ngModel)]="fechaDesde"></div>
   <div class="col-lg-2"><label class="form-label" for="hastaPago">Hasta</label><input id="hastaPago" class="form-control" type="date" [(ngModel)]="fechaHasta"></div>
   <div class="col-lg-2"><button class="btn btn-outline-secondary w-100" type="button" (click)="limpiarFiltros()">Limpiar filtros</button></div>
@@ -31,13 +32,60 @@
     <i class="bi bi-file-earmark-excel me-2"></i>Exportar a Excel
   </button>
 </div>
-<div class="card surface-card overflow-hidden"><div class="table-responsive"><table class="table table-hover mb-0"><thead class="table-light"><tr><th>Pago</th><th>Ticket origen</th><th>Monto</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead><tbody>
-@for (pago of pagosFiltrados; track pago.id) {
-  <tr><td class="fw-semibold">#{{ pago.id }}</td><td><span class="badge text-bg-light">Ticket #{{ pago.ticketId }}</span></td><td class="fs-5 fw-bold">{{ pago.montoPago | currency:'PEN':'symbol':'1.2-2' }}</td><td><span class="badge" [class.text-bg-warning]="pago.estadoPago === 'PENDIENTE'" [class.text-bg-success]="pago.estadoPago === 'PAGADO'" [class.text-bg-danger]="pago.estadoPago === 'ANULADO'">{{ pago.estadoPago }}</span></td><td class="text-end text-nowrap">
-  @if (pago.estadoPago === 'PENDIENTE') {
-    <button class="btn btn-sm btn-primary me-2" [disabled]="procesandoId === pago.id || anulandoId === pago.id" (click)="procesar(pago)"><i class="bi bi-credit-card me-2"></i>{{ procesandoId === pago.id ? 'Procesando...' : 'Procesar cobro' }}</button>
-    <button class="btn btn-sm btn-danger" [disabled]="procesandoId === pago.id || anulandoId === pago.id" (click)="anularPago(pago)"><i class="bi bi-x-circle me-2"></i>{{ anulandoId === pago.id ? 'Anulando...' : 'Anular' }}</button>
-  } @else { <span class="text-secondary small">Sin acciones pendientes</span> }
-  </td></tr>
-} @empty { <tr><td colspan="5" class="empty-state">@if (cargando) { Consultando pagos... } @else { No hay cobros registrados. }</td></tr> }
-</tbody></table></div></div>
+<div class="card surface-card overflow-hidden"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+  <thead class="table-light"><tr><th>Pago</th><th>Ticket / Cliente</th><th>Monto total</th><th>Abonado / Saldo</th><th>Método de pago</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+  <tbody>
+  @for (pago of pagosFiltrados; track pago.id) {
+    <tr>
+      <td class="fw-semibold">#{{ pago.id }}</td>
+      <td><span class="badge text-bg-light">Ticket #{{ pago.ticketId }}</span><strong class="d-block mt-1">{{ nombreCliente(pago) }}</strong><small class="text-secondary">{{ resumenEquipo(pago) }}</small></td>
+      <td class="fw-bold text-nowrap">{{ montoTotal(pago) | currency:'PEN':'symbol':'1.2-2' }}</td>
+      <td class="text-nowrap"><span class="text-success">Abonado: {{ abonado(pago) | currency:'PEN':'symbol':'1.2-2' }}</span><small class="d-block fw-semibold">Saldo: {{ saldo(pago) | currency:'PEN':'symbol':'1.2-2' }}</small></td>
+      <td><span class="badge text-bg-light text-wrap">{{ pago.metodoPago || 'Sin registrar' }}</span></td>
+      <td><span class="badge" [class.text-bg-warning]="pago.estadoPago === 'PENDIENTE'" [class.text-bg-info]="pago.estadoPago === 'PARCIAL'" [class.text-bg-success]="pago.estadoPago === 'PAGADO'" [class.text-bg-danger]="pago.estadoPago === 'ANULADO'">{{ pago.estadoPago }}</span></td>
+      <td class="text-end text-nowrap">
+      @if (pago.estadoPago === 'PENDIENTE' || pago.estadoPago === 'PARCIAL') {
+        <button type="button" class="btn btn-sm btn-primary me-2" [disabled]="procesandoId === pago.id || anulandoId === pago.id" (click)="procesar(pago)"><i class="bi bi-credit-card me-2"></i>{{ pago.estadoPago === 'PARCIAL' ? 'Completar saldo' : 'Procesar cobro' }}</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="procesandoId === pago.id || anulandoId === pago.id" (click)="anularPago(pago)"><i class="bi bi-x-circle me-2"></i>{{ anulandoId === pago.id ? 'Anulando...' : 'Anular' }}</button>
+      } @else { <span class="text-secondary small">Sin acciones pendientes</span> }
+      </td>
+    </tr>
+  } @empty { <tr><td colspan="7" class="empty-state">@if (cargando) { Consultando pagos... } @else { Ningún pago coincide con los filtros. }</td></tr> }
+  </tbody>
+</table></div></div>
+
+@if (pagoSeleccionado; as pago) {
+  <div class="modal-backdrop-custom" role="dialog" aria-modal="true" aria-labelledby="tituloCobro">
+    <div class="card modal-card surface-card"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div><p class="text-primary fw-bold small mb-1">REGISTRO DE COBRO</p><h2 id="tituloCobro" class="h4 fw-bold">Cobro / Adelanto #{{ pago.id }}</h2></div>
+        <button type="button" class="btn-close" aria-label="Cerrar" [disabled]="!!procesandoId" (click)="cerrarCobro()"></button>
+      </div>
+      <div class="bg-light rounded p-3 mb-3">
+        <strong>Ticket #{{ pago.ticketId }} · {{ nombreCliente(pago) }}</strong>
+        <p class="text-secondary small mb-2">{{ resumenEquipo(pago) }}</p>
+        <div class="row g-2"><div class="col"><small class="text-secondary d-block">Monto total</small><strong>{{ montoTotal(pago) | currency:'PEN':'symbol':'1.2-2' }}</strong></div><div class="col"><small class="text-secondary d-block">Ya abonado</small><strong class="text-success">{{ abonado(pago) | currency:'PEN':'symbol':'1.2-2' }}</strong></div><div class="col"><small class="text-secondary d-block">Saldo pendiente</small><strong class="text-primary">{{ saldo(pago) | currency:'PEN':'symbol':'1.2-2' }}</strong></div></div>
+      </div>
+      <form (ngSubmit)="registrarCobro()" #formCobro="ngForm">
+        <fieldset [disabled]="!!procesandoId">
+          <legend class="fs-6 fw-semibold">Modalidad de pago</legend>
+          <div class="btn-group w-100 mb-3" role="group" aria-label="Modalidad">
+            <button type="button" class="btn" [class.btn-primary]="modalidadCobro === 'TOTAL'" [class.btn-outline-primary]="modalidadCobro !== 'TOTAL'" [attr.aria-pressed]="modalidadCobro === 'TOTAL'" (click)="elegirModalidad('TOTAL')">Pago total / Cancelar saldo</button>
+            <button type="button" class="btn" [class.btn-primary]="modalidadCobro === 'PARCIAL'" [class.btn-outline-primary]="modalidadCobro !== 'PARCIAL'" [attr.aria-pressed]="modalidadCobro === 'PARCIAL'" (click)="elegirModalidad('PARCIAL')">Parcial / Adelanto</button>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6"><label for="montoAbono" class="form-label">Monto del abono (S/)</label><input id="montoAbono" class="form-control" name="montoAbono" type="number" min="0.01" [max]="saldo(pago)" step="0.01" required [(ngModel)]="montoAbono" [readonly]="modalidadCobro === 'TOTAL'">
+              @if (modalidadCobro === 'PARCIAL') { <button type="button" class="btn btn-link btn-sm px-0" (click)="adelantoMitad()">50% del total (hasta el saldo)</button> }
+            </div>
+            <div class="col-md-6"><label for="metodoCobro" class="form-label">Método de pago</label><select id="metodoCobro" class="form-select" name="metodoCobro" required [(ngModel)]="metodoCobro"><option value="" disabled>Seleccione un método</option><option value="EFECTIVO">Efectivo en caja</option><option value="YAPE_PLIN">Billetera digital: Yape / Plin</option><option value="TRANSFERENCIA">Transferencia bancaria</option><option value="TARJETA">Tarjeta Débito / Crédito</option></select></div>
+            <div class="col-12"><label for="referenciaCobro" class="form-label">Referencia / Observación (opcional)</label><textarea id="referenciaCobro" class="form-control" name="referenciaCobro" rows="2" maxlength="500" [(ngModel)]="referenciaCobro" placeholder="N° de operación o Adelanto para iniciar reparación"></textarea></div>
+          </div>
+        </fieldset>
+        @if (montoAbono > saldo(pago) || montoAbono < 0) { <p class="text-danger mt-2">El abono debe ser positivo y no superar el saldo pendiente.</p> }
+        @if (errorCobro) { <div class="alert alert-danger mt-3" role="alert">{{ errorCobro }}</div> }
+        <div class="d-flex justify-content-end gap-2 mt-4"><button type="button" class="btn btn-light" [disabled]="!!procesandoId" (click)="cerrarCobro()">Cancelar</button><button type="submit" class="btn btn-success" [disabled]="formCobro.invalid || !cobroValido || !!procesandoId">{{ procesandoId ? 'Registrando...' : 'Registrar abono' }}</button></div>
+      </form>
+    </div></div>
+  </div>
+}

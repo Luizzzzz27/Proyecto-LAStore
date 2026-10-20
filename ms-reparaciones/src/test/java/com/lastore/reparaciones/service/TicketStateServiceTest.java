@@ -16,7 +16,8 @@ import com.lastore.reparaciones.repository.TicketRepository;
 class TicketStateServiceTest {
     private final TicketRepository repository = mock(TicketRepository.class);
     private final RabbitTemplate rabbit = mock(RabbitTemplate.class);
-    private final TicketStateService service = new TicketStateService(repository, rabbit);
+    private final ClienteDirectoryClient clientes = mock(ClienteDirectoryClient.class);
+    private final TicketStateService service = new TicketStateService(repository, rabbit, clientes);
 
     @Test void crearAprobadaPublicaCobro() {
         when(repository.save(any(Ticket.class))).thenAnswer(call -> {

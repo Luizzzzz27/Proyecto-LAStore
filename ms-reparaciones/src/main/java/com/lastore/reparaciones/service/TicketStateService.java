@@ -14,10 +14,12 @@ import com.lastore.reparaciones.repository.TicketRepository;
 public class TicketStateService {
     private final TicketRepository ticketRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final ClienteDirectoryClient clientes;
 
-    public TicketStateService(TicketRepository ticketRepository, RabbitTemplate rabbitTemplate) {
+    public TicketStateService(TicketRepository ticketRepository, RabbitTemplate rabbitTemplate, ClienteDirectoryClient clientes) {
         this.ticketRepository = ticketRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.clientes = clientes;
     }
 
     public Ticket obtener(Long id) {
@@ -26,6 +28,7 @@ public class TicketStateService {
     }
 
     public Ticket crear(Ticket ticket) {
+        clientes.validar(ticket.getClienteId());
         ticket.setId(null);
         if (ticket.getEstadoCotizacion() == null || ticket.getEstadoCotizacion().isBlank()) {
             ticket.setEstadoCotizacion(EstadoCotizacion.PENDIENTE_ENVIO.name());
@@ -39,6 +42,7 @@ public class TicketStateService {
 
     public Ticket actualizar(Long id, Ticket datos) {
         Ticket ticket = obtener(id);
+        clientes.validar(datos.getClienteId());
         EstadoCotizacion anterior = EstadoCotizacion.desde(ticket.getEstadoCotizacion());
         EstadoCotizacion siguiente = EstadoCotizacion.desde(datos.getEstadoCotizacion());
         anterior.validarTransicion(siguiente);
@@ -55,6 +59,7 @@ public class TicketStateService {
 
     public Ticket aprobar(Long id) {
         Ticket ticket = obtener(id);
+        clientes.validar(ticket.getClienteId());
         EstadoCotizacion.desde(ticket.getEstadoCotizacion()).validarTransicion(EstadoCotizacion.APROBADA);
         ticket.setEstadoCotizacion(EstadoCotizacion.APROBADA.name());
         Ticket guardado = ticketRepository.save(ticket);
