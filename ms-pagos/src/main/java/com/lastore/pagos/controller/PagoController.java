@@ -42,6 +42,7 @@ public class PagoController {
         pago.setTicketId(datos.getTicketId());
         pago.setMontoPago(datos.getMontoPago());
         pago.setEstadoPago(datos.getEstadoPago());
+        pago.setMetodoPago(datos.getMetodoPago());
         return pagoRepository.save(pago);
     }
     @DeleteMapping("/{id}") public ResponseEntity<Void> eliminar(@PathVariable Long id) {

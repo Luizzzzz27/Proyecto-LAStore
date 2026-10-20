@@ -23,6 +23,7 @@ export interface Ticket {
   fallaReportada: string;
   estadoCotizacion: string;
   montoTotal: number;
+  fechaRegistro?: string | null;
 }
 
 export interface Pago {
@@ -30,4 +31,6 @@ export interface Pago {
   ticketId: number;
   montoPago: number;
   estadoPago: string;
+  fechaRegistro?: string | null;
+  metodoPago?: string | null;
 }

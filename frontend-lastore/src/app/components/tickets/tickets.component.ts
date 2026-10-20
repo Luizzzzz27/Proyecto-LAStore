@@ -2,11 +2,9 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe } from '@angular/common';
 import { finalize } from 'rxjs';
-import { Ticket } from '../../models/models';
+import { Cliente, Ticket } from '../../models/models';
 import { TicketService } from '../../services/ticket.service';
-import { jsPDF } from 'jspdf';
-import { autoTable } from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { ClienteService } from '../../services/cliente.service';
 
 @Component({
   selector: 'app-tickets',
@@ -16,6 +14,11 @@ import * as XLSX from 'xlsx';
 })
 export class TicketsComponent implements OnInit {
   tickets: Ticket[] = [];
+  clientes = new Map<number, Cliente>();
+  terminoBusqueda = '';
+  estadoFiltro = '';
+  fechaDesde = '';
+  fechaHasta = '';
   formulario: Ticket = this.nuevoTicket();
   modalAbierto = false;
   cargando = false;
@@ -26,10 +29,44 @@ export class TicketsComponent implements OnInit {
   constructor(
     private readonly ticketService: TicketService,
     private readonly changeDetectorRef: ChangeDetectorRef,
+    private readonly clienteService: ClienteService,
   ) {}
   ngOnInit(): void {
     this.cargarTickets();
+    this.clienteService.listar().subscribe({
+      next: clientes => { this.clientes = new Map(clientes.filter(c => c.id != null).map(c => [c.id!, c])); this.changeDetectorRef.markForCheck(); },
+      error: () => { this.error = 'No se pudieron cargar los clientes para la búsqueda.'; this.changeDetectorRef.markForCheck(); }
+    });
   }
+
+  get ticketsFiltrados(): Ticket[] {
+    const texto = this.terminoBusqueda.trim().toLocaleLowerCase('es-PE');
+    return this.tickets.filter(ticket => {
+      const cliente = this.clientes.get(ticket.clienteId);
+      const valores = [ticket.id, `#${ticket.id}`, ticket.clienteId, cliente?.nombres,
+        cliente?.dniRuc, ticket.tipoEquipo, ticket.marcaModelo, ticket.fallaReportada];
+      return (!texto || valores.some(valor => String(valor ?? '').toLocaleLowerCase('es-PE').includes(texto)))
+        && (!this.estadoFiltro || ticket.estadoCotizacion === this.estadoFiltro)
+        && this.enRango(ticket.fechaRegistro);
+    });
+  }
+
+  private enRango(fecha?: string | null): boolean {
+    if (!this.fechaDesde && !this.fechaHasta) return true;
+    if (!fecha) return false; // Los registros históricos sin fecha solo se excluyen con filtro activo.
+    const dia = fecha.slice(0, 10);
+    return (!this.fechaDesde || dia >= this.fechaDesde) && (!this.fechaHasta || dia <= this.fechaHasta);
+  }
+
+  limpiarFiltros(): void { this.terminoBusqueda = ''; this.estadoFiltro = ''; this.fechaDesde = ''; this.fechaHasta = ''; }
+  filtrarHoy(): void { const hoy = this.fechaArchivo(); this.fechaDesde = hoy; this.fechaHasta = hoy; }
+  filtrarSemana(): void {
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - (hoy.getDay() + 6) % 7);
+    this.fechaDesde = this.formatoDia(inicio); this.fechaHasta = this.fechaArchivo();
+  }
+  filtrarMes(): void { const hoy = new Date(); this.fechaDesde = this.formatoDia(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); this.fechaHasta = this.fechaArchivo(); }
+  private formatoDia(fecha: Date): string { return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`; }
 
   cargarTickets(): void {
     this.cargando = true;
@@ -122,7 +159,10 @@ export class TicketsComponent implements OnInit {
     return local.toISOString().slice(0, 10);
   }
 
-  exportarPDF(): void {
+  async exportarPDF(): Promise<void> {
+    const filas = this.ticketsFiltrados;
+    if (!filas.length) return;
+    const [{ jsPDF }, { autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
     const doc = new jsPDF({ orientation: 'landscape' });
     const ancho = doc.internal.pageSize.getWidth();
 
@@ -136,12 +176,14 @@ export class TicketsComponent implements OnInit {
     doc.setFontSize(10);
     doc.text(`Generado: ${new Date().toLocaleString('es-PE')}`, ancho / 2, 26, { align: 'center' });
 
+    const total = filas.reduce((suma, ticket) => suma + Number(ticket.montoTotal || 0), 0);
+    doc.text(`Periodo: ${this.fechaDesde || 'Todos'} al ${this.fechaHasta || 'Todos'} | Total registros: ${filas.length} | Monto total: S/ ${total.toFixed(2)}`, ancho / 2, 32, { align: 'center' });
     autoTable(doc, {
-      startY: 34,
+      startY: 39,
       head: [['Ticket', 'Cliente', 'Equipo', 'Falla', 'Estado', 'Monto']],
-      body: this.tickets.map((ticket) => [
+      body: filas.map((ticket) => [
         `#${ticket.id ?? ''}`,
-        `#${ticket.clienteId}`,
+        this.clientes.get(ticket.clienteId)?.nombres ?? `#${ticket.clienteId}`,
         `${ticket.tipoEquipo} - ${ticket.marcaModelo}`,
         ticket.fallaReportada,
         ticket.estadoCotizacion,
@@ -156,10 +198,12 @@ export class TicketsComponent implements OnInit {
     doc.save(`Reporte_LA_Store_Cotizaciones_${this.fechaArchivo()}.pdf`);
   }
 
-  exportarExcel(): void {
-    const filas = this.tickets.map((ticket) => ({
+  async exportarExcel(): Promise<void> {
+    if (!this.ticketsFiltrados.length) return;
+    const XLSX = await import('xlsx');
+    const filas = this.ticketsFiltrados.map((ticket) => ({
       Ticket: ticket.id ?? '',
-      Cliente: ticket.clienteId,
+      Cliente: this.clientes.get(ticket.clienteId)?.nombres ?? `#${ticket.clienteId}`,
       Equipo: `${ticket.tipoEquipo} - ${ticket.marcaModelo}`,
       Falla: ticket.fallaReportada,
       Estado: ticket.estadoCotizacion,

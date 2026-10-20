@@ -1,23 +1,49 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
-import { Pago } from '../../models/models';
+import { Cliente, Pago, Ticket } from '../../models/models';
 import { PagoService } from '../../services/pago.service';
-import { jsPDF } from 'jspdf';
-import { autoTable } from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { TicketService } from '../../services/ticket.service';
+import { ClienteService } from '../../services/cliente.service';
 
-@Component({ selector: 'app-pagos', standalone: true, imports: [CurrencyPipe], templateUrl: './pagos.component.html' })
+@Component({ selector: 'app-pagos', standalone: true, imports: [CurrencyPipe, FormsModule], templateUrl: './pagos.component.html' })
 export class PagosComponent implements OnInit {
   pagos: Pago[] = [];
+  tickets = new Map<number, Ticket>();
+  clientes = new Map<number, Cliente>();
+  terminoBusqueda = '';
+  estadoFiltro = '';
+  fechaDesde = '';
+  fechaHasta = '';
   cargando = false;
   procesandoId?: number;
   anulandoId?: number;
   mensaje = '';
   error = '';
 
-  constructor(private readonly pagoService: PagoService, private readonly changeDetectorRef: ChangeDetectorRef) {}
-  ngOnInit(): void { this.cargarPagos(); }
+  constructor(private readonly pagoService: PagoService, private readonly changeDetectorRef: ChangeDetectorRef,
+    private readonly ticketService: TicketService, private readonly clienteService: ClienteService) {}
+  ngOnInit(): void {
+    this.cargarPagos();
+    this.ticketService.listar().subscribe({ next: tickets => { this.tickets = new Map(tickets.filter(t => t.id != null).map(t => [t.id!, t])); this.changeDetectorRef.markForCheck(); }, error: () => { this.error = 'No se pudieron cargar los tickets para la búsqueda.'; this.changeDetectorRef.markForCheck(); } });
+    this.clienteService.listar().subscribe({ next: clientes => { this.clientes = new Map(clientes.filter(c => c.id != null).map(c => [c.id!, c])); this.changeDetectorRef.markForCheck(); }, error: () => { this.error = 'No se pudieron cargar los clientes para la búsqueda.'; this.changeDetectorRef.markForCheck(); } });
+  }
+
+  get pagosFiltrados(): Pago[] {
+    const texto = this.terminoBusqueda.trim().toLocaleLowerCase('es-PE');
+    return this.pagos.filter(pago => {
+      const ticket = this.tickets.get(pago.ticketId);
+      const cliente = ticket ? this.clientes.get(ticket.clienteId) : undefined;
+      const valores = [pago.id, `#${pago.id}`, pago.ticketId, `#${pago.ticketId}`,
+        cliente?.nombres, cliente?.dniRuc, pago.metodoPago];
+      const fecha = pago.fechaRegistro?.slice(0, 10);
+      return (!texto || valores.some(valor => String(valor ?? '').toLocaleLowerCase('es-PE').includes(texto)))
+        && (!this.estadoFiltro || pago.estadoPago === this.estadoFiltro)
+        && ((!this.fechaDesde && !this.fechaHasta) || (!!fecha && (!this.fechaDesde || fecha >= this.fechaDesde) && (!this.fechaHasta || fecha <= this.fechaHasta)));
+    });
+  }
+  limpiarFiltros(): void { this.terminoBusqueda = ''; this.estadoFiltro = ''; this.fechaDesde = ''; this.fechaHasta = ''; }
 
   cargarPagos(): void {
     this.cargando = true;
@@ -65,7 +91,10 @@ export class PagosComponent implements OnInit {
     return local.toISOString().slice(0, 10);
   }
 
-  exportarPDF(): void {
+  async exportarPDF(): Promise<void> {
+    const filas = this.pagosFiltrados;
+    if (!filas.length) return;
+    const [{ jsPDF }, { autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
     const doc = new jsPDF();
     const ancho = doc.internal.pageSize.getWidth();
 
@@ -84,10 +113,12 @@ export class PagosComponent implements OnInit {
       { align: 'center' }
     );
 
+    const total = filas.reduce((suma, pago) => suma + Number(pago.montoPago || 0), 0);
+    doc.text(`Periodo: ${this.fechaDesde || 'Todos'} al ${this.fechaHasta || 'Todos'} | Total registros: ${filas.length} | Monto total: S/ ${total.toFixed(2)}`, ancho / 2, 32, { align: 'center' });
     autoTable(doc, {
-      startY: 34,
+      startY: 39,
       head: [['Pago', 'Ticket origen', 'Monto', 'Estado']],
-      body: this.pagos.map(pago => [
+      body: filas.map(pago => [
         `#${pago.id ?? ''}`,
         `Ticket #${pago.ticketId}`,
         `S/ ${Number(pago.montoPago).toFixed(2)}`,
@@ -101,8 +132,10 @@ export class PagosComponent implements OnInit {
     doc.save(`Reporte_LA_Store_Pagos_${this.fechaArchivo()}.pdf`);
   }
 
-  exportarExcel(): void {
-    const filas = this.pagos.map(pago => ({
+  async exportarExcel(): Promise<void> {
+    if (!this.pagosFiltrados.length) return;
+    const XLSX = await import('xlsx');
+    const filas = this.pagosFiltrados.map(pago => ({
       Pago: pago.id ?? '',
       'Ticket origen': pago.ticketId,
       Monto: Number(pago.montoPago),

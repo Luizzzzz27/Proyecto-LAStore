@@ -1,11 +1,13 @@
 package com.lastore.pagos.model;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -24,6 +26,17 @@ public class Pago {
     @Column(name = "estado_pago", nullable = false, length = 20)
     private String estadoPago = "PENDIENTE";
 
+    @Column(name = "fecha_registro", updatable = false)
+    private LocalDateTime fechaRegistro;
+
+    @Column(name = "metodo_pago", length = 50)
+    private String metodoPago;
+
+    @PrePersist
+    public void asignarFechaRegistro() {
+        if (fechaRegistro == null) fechaRegistro = LocalDateTime.now();
+    }
+
     public Pago() { }
 
     public Pago(Long id, Long ticketId, BigDecimal montoPago, String estadoPago) {
@@ -41,4 +54,8 @@ public class Pago {
     public void setMontoPago(BigDecimal montoPago) { this.montoPago = montoPago; }
     public String getEstadoPago() { return estadoPago; }
     public void setEstadoPago(String estadoPago) { this.estadoPago = estadoPago; }
+    public LocalDateTime getFechaRegistro() { return fechaRegistro; }
+    public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
+    public String getMetodoPago() { return metodoPago; }
+    public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
 }
