@@ -4,14 +4,35 @@
 </div>
 @if (mensaje) { <div class="alert alert-success alert-dismissible">{{ mensaje }}<button class="btn-close" (click)="mensaje = ''"></button></div> }
 @if (error) { <div class="alert alert-danger alert-dismissible">{{ error }}<button class="btn-close" (click)="error = ''"></button></div> }
+<div class="card surface-card mb-3">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-6">
+        <label class="form-label" for="buscarCliente">Buscar por DNI/RUC, nombre, correo o teléfono</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input id="buscarCliente" class="form-control" type="search" placeholder="Ej. 12345678, empresa, correo o teléfono" [(ngModel)]="terminoBusqueda">
+        </div>
+      </div>
+      <div class="col-lg-2"><button type="button" class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()"><i class="bi bi-eraser me-2"></i>Limpiar filtros</button></div>
+      <div class="col-lg-4">
+        <div class="d-flex justify-content-lg-end gap-2">
+          <button type="button" class="btn btn-danger" [disabled]="cargando || clientesFiltrados.length === 0" (click)="exportarPDF()"><i class="bi bi-file-earmark-pdf me-2"></i>Exportar a PDF</button>
+          <button type="button" class="btn btn-success" [disabled]="cargando || clientesFiltrados.length === 0" (click)="exportarExcel()"><i class="bi bi-file-earmark-excel me-2"></i>Exportar a Excel</button>
+        </div>
+      </div>
+    </div>
+    <div class="text-end text-secondary small mt-3">{{ clientesFiltrados.length }} de {{ clientes.length }} resultados</div>
+  </div>
+</div>
 <div class="card surface-card overflow-hidden">
   <div class="table-responsive">
     <table class="table table-hover mb-0">
       <thead class="table-light"><tr><th>ID</th><th>DNI / RUC</th><th>Cliente</th><th>Teléfono</th><th>Correo</th><th class="text-end">Acciones</th></tr></thead>
       <tbody>
-        @for (cliente of clientes; track cliente.id) {
+        @for (cliente of clientesFiltrados; track cliente.id) {
           <tr><td class="text-secondary">#{{ cliente.id }}</td><td><span class="badge text-bg-light">{{ cliente.dniRuc }}</span></td><td class="fw-semibold">{{ cliente.nombres }}</td><td>{{ cliente.telefono || '—' }}</td><td>{{ cliente.correo || '—' }}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-2" (click)="abrirEditar(cliente)"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" (click)="eliminar(cliente)"><i class="bi bi-trash"></i></button></td></tr>
-        } @empty { <tr><td colspan="6" class="empty-state">@if (cargando) { Cargando clientes... } @else { Aún no hay clientes registrados. }</td></tr> }
+        } @empty { <tr><td colspan="6" class="empty-state">@if (cargando) { Cargando clientes... } @else { Ningún cliente coincide con la búsqueda. }</td></tr> }
       </tbody>
     </table>
   </div>
