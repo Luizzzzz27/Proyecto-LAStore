@@ -1,7 +1,7 @@
 # 💻 LA Store Service-Commerce
 
 Plataforma distribuida basada en **Microservicios** y **Mensajería Asíncrona** para la gestión integral de servicio técnico, cotizaciones y tesorería. 
-Proyecto final desarrollado para el curso de **Experiencias Formativas en Situaciones Reales de Trabajo V (EFSRT V)** - Cibertec 2026.
+Proyecto final desarrollado para el curso de **Desarrollo de Aplicaciones Web II (4697)** - Cibertec 2026.
 
 ## 🚀 Stack Tecnológico
 * **Backend:** Java 17, Spring Boot 3, Spring Cloud (Netflix Eureka, API Gateway), Spring Data JPA
